@@ -2,6 +2,8 @@
 
 import csv
 import re as re
+import matplotlib.pyplot as plt
+import numpy as np
 
 #regex pattern for DCB
 pattern_DCB = re.compile('^(WVJCE-)[\\d\\d\\d]')
@@ -66,6 +68,75 @@ class DCB:
 
     def increment_total(self):
         self.num_total += 1
+
+    def py_plot(self):
+        # Data to plot
+        labels = 'Assembled\nDCBs', 'Unassembled\nand other DCBs'
+        sizes = [self.num_assembled, self.num_not_assembled + self.num_unknown]
+        colors = ['blue', 'red']
+        patches, texts = plt.pie(sizes, colors=colors, shadow=True, startangle=90)
+
+        # Plot
+        plt.rcParams.update({'font.size': 20})
+        plt.figure(figsize=(14,10))
+        plt.title("Ratio of Assembled DCBs\n(out of a total of " + str(self.num_total) + ')')
+        plt.legend(patches, labels, loc="upper right")
+        plt.axis('equal')
+        plt.xlabel("Assembled DCBs: " + str(self.num_assembled) + 
+        " | Unassembled DCBs: " + str(self.num_not_assembled) + 
+        " | Other DCBs: " + str(self.num_unknown))
+        plt.pie(sizes, labels=labels, colors=colors,
+        autopct='%1.1f%%', shadow=True, startangle=140)
+        plt.tight_layout()
+        plt.savefig('DCB_AssemblyPieChart.png', bbox_inches='tight', pad_inches = 0.2)
+
+        # Bar Plot
+        # plt.style.use('ggplot')
+        colors = ['blue', 'red', 'yellow']
+        labels = ['Assembled DCBs', 'Unassembled DCBs', 'Other DCBs']
+        num_totals = [self.num_assembled, self.num_not_assembled, self.num_unknown]
+        plt.figure(figsize = (14, 10))
+        index = np.arange(len(labels))
+        plt.bar(index, num_totals, color = colors)
+
+        plt.xlabel('DCB Type')
+        plt.ylabel('Number of DCBs')
+        plt.xticks(index, labels)
+        plt.title('DCB By Type')
+        plt.legend(patches, labels, loc="upper right")
+        plt.savefig('DCB_AssemblyBarChart.png')
+
+        # Data to plot
+        labels = 'Fused,\nAssembled DCBs', 'Unfused,\nAssembled DCBs'
+        sizes = self.process_fused()
+        colors = ['blue', 'red']
+        patches, texts = plt.pie(sizes, colors=colors, shadow=True, startangle=90)
+        
+        # Plot
+        plt.figure(figsize=(16,12))
+        plt.title("Ratio of Fused DCBs\n(out of a total of " + str(self.num_assembled) + ' Assembled DCBs)')
+        plt.legend(patches, labels, loc="upper right")
+        plt.axis('equal')
+        plt.xlabel("Fused DCBs: " + str(sizes[0]) + 
+        " | Assembled DCBs: " + str(sizes[1]))
+
+        plt.pie(sizes, labels=labels, colors=colors,
+        autopct='%1.1f%%', shadow=True, startangle=45)
+        plt.tight_layout()
+        plt.savefig('DCB_FusedPieChart.png', bbox_inches='tight', pad_inches = 0.2)
+
+    def process_fused(self):
+        number_fused = 0
+        number_not_fused = 0
+
+        for value in self.good_DCB.values():
+            if (value[2] == 'yes' or value[2] == 'Yes'):
+                number_fused += 1
+            
+        number_not_fused = self.num_assembled - number_fused
+
+        result = [number_fused, number_not_fused]
+        return result
 
     def assembled_dict_update(self, line):
         self.good_DCB[line[1]] = line[2:12]
@@ -260,6 +331,7 @@ with open('CSV_DCB.csv', 'r') as csv_file:
             
             new_DCB.increment_total()
 
+    new_DCB.py_plot()
     output_stream = open("Demonstration_Output_DCB.txt","w")
     if (output_stream):
         output_stream.write(new_DCB.output_stream())
