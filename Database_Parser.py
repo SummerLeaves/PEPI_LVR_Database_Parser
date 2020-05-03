@@ -33,39 +33,6 @@ class DCB:
         self.num_unknown = 0
         self.num_total = 0
 
-    def output_stream(self):
-        result = "DCB General Stats\n"
-        result += "The total number of boards (assembled, not assembled, unknown): " + str(self.num_total) + "\n"
-        result += "The number of assembled boards: " + str(self.num_assembled) + "\n"
-        result += "The number of boards not assembled: " + str(self.num_not_assembled) + "\n"
-        result += "The number of boards with unknown condition: " + str(self.num_unknown) + "\n"
-        return result
-
-    def output_stream_assembled_individual_stats(self):
-        result = "Assembled DCB Stats\n"
-        for x, y in self.good_DCB.items():
-            result += "For DCB with ID " + x + ", Location - " + y[0]
-            result += ", Assembled - " + y[1] + ", and Fused - " + y[2] + "\n"
-        return result
-    
-    def output_stream_good_comments(self):
-        result = "Assembled DCB Comments\n"
-        for x, y in self.good_DCB.items():
-            if (y[9] != ""):
-                result += "For assembled DCB with ID " + x + ", the comment is: " + y[9] + "\n"
-        return result
-
-    def output_stream_bad_comments(self):
-        result = "Not Assembled DCB Comments\n"
-        count = 0
-        for x, y in self.bad_DCB.items():
-            if (y[9] != ""):
-                result += "For the DCB with ID " + x + ", the comment is: " + y[9] + "\n"
-                count += 1
-        if (count == 0):
-            result += "None of them have comments.\n"
-        return result
-
     def increment_total(self):
         self.num_total += 1
 
@@ -164,40 +131,6 @@ class LVR:
         self.num_LVR_ES = 0
         self.num_total = 0
 
-    def output_stream(self):
-        result = "LVR General Stats\n"
-        result += "The total number of boards " + str(self.num_total) + "\n"
-        result += "Number of LVR Type WVJCZ: " + str(self.num_LVR_CZ) + "\n"
-        result += "Number of LVR Type WVJEN: " + str(self.num_LVR_EN) + "\n"
-        result += "Number of LVR Type WVJER: " + str(self.num_LVR_ER) + "\n"
-        result += "Number of LVR Type WVJES: " + str(self.num_LVR_ES) + "\n"
-        return result
-    
-    def output_stream_individual_stats(self):
-        result = "LVR Stats\n"
-
-        result += "\nType WVJCZ LVR's\n"
-        for x, y in self.LVR_CZ.items():
-            result += "For LVR with ID " + x + ", and serial number " + y[1] + ":"
-            result += "[CCM: " + y[2] + "]" + "\n"
-
-        result += "\nType WVJEN LVR's\n"
-        for x, y in self.LVR_EN.items():
-            result += "For LVR with ID " + x + ", and serial number " + y[1] + ":"
-            result += "[CCM: " + y[2] + "]" + "\n"
-        
-        result += "\nType WVJER LVR's\n"
-        for x, y in self.LVR_ER.items():
-            result += "For LVR with ID " + x + ", and serial number " + y[1] + ":"
-            result += "[CCM: " + y[2] + "]" + "\n"
-
-        result += "\nType WVJES LVR's\n"
-        for x, y in self.LVR_ES.items():
-            result += "For LVR with ID " + x + ", and serial number " + y[1] + ":"
-            result += "[CCM: " + y[2] + "]" + "\n"
-
-        return result
-
     def increment_total(self):
         self.num_total += 1
 
@@ -234,46 +167,6 @@ class CCM:
         self.num_15S = 0
         self.num_25A = 0
         self.num_total = 0
-
-    def output_stream(self):
-        result = "CCM General Stats\n"
-        result += "Total CCM's: " + str(self.num_total) + "\n"
-        result += "Total Completed 12A's: " + str(self.num_12A) + "\n"
-        result += "Total Completed 12M's: " + str(self.num_12M) + "\n"
-        result += "Total Completed 12S's: " + str(self.num_12S) + "\n"
-        result += "Total Completed 15M's: " + str(self.num_15M) + "\n"
-        result += "Total Completed 15S's: " + str(self.num_15S) + "\n"
-        result += "Total Completed 25A's: " + str(self.num_25A) + "\n"
-        return result
-    
-    def output_stream_individual_stats(self):
-        result = "CCM Stats\n"
-        
-        result +="\n12A Rolls\n"
-        for x, y in self.CCM_12A.items():
-            result += "Roll ID " + x + " has a total of " + y[3] + " 12A's\n"
-
-        result += "\n12M Rolls\n"
-        for x, y in self.CCM_12M.items():
-            result += "Roll ID " + x + " has a total of " + y[3] + " 12M's\n"
-
-        result += "\n12S Rolls\n"
-        for x, y in self.CCM_12S.items():
-            result += "Roll ID " + x + " has a total of " + y[3] + " 12S's\n"
-
-        result += "\n15M Rolls\n"
-        for x, y in self.CCM_15M.items():
-            result += "Roll ID " + x + " has a total of " + y[3] + " 15M's\n"
-
-        result += "\n15S Rolls\n"
-        for x, y in self.CCM_15S.items():
-            result += "Roll ID " + x + " has a total of " + y[3] + " 15S's\n"
-
-        result += "\n25A Rolls\n"
-        for x, y in self.CCM_25A.items():
-            result += "Roll ID " + x + " has a total of " + y[3] + " 25A's\n"
-
-        return result
 
     def increment_total(self):
         self.num_total += 1
@@ -332,17 +225,6 @@ with open('CSV_DCB.csv', 'r') as csv_file:
             new_DCB.increment_total()
 
     new_DCB.py_plot()
-    output_stream = open("Demonstration_Output_DCB.txt","w")
-    if (output_stream):
-        output_stream.write(new_DCB.output_stream())
-        output_stream.write("\n")
-        output_stream.write(new_DCB.output_stream_assembled_individual_stats())
-        output_stream.write("\n")
-        output_stream.write(new_DCB.output_stream_good_comments())
-        output_stream.write("\n")
-        output_stream.write(new_DCB.output_stream_bad_comments())
-    else:
-        print("Output stream failed to open.")
 
 #Driver for reading/parsing/writing the LVR portion of the database.
 with open('CSV_LVR.csv', 'r') as csv_file:
@@ -366,15 +248,7 @@ with open('CSV_LVR.csv', 'r') as csv_file:
 
         elif(re.match(pattern_LVR_ES, line[6])):
             new_LVR.dict_update_ES(line)
-            new_LVR.increment_total()
-
-    output_stream = open("Demonstration_Output_LVR.txt","w")
-    if (output_stream):
-        output_stream.write(new_LVR.output_stream())
-        output_stream.write("\n")
-        output_stream.write(new_LVR.output_stream_individual_stats())
-    else:
-        print("Output stream failed to open.")            
+            new_LVR.increment_total()        
 
 #Driver for reading/parsing/writing the CCM portion of the database.
 with open('CSV_CCM.csv', 'r') as csv_file:
@@ -408,11 +282,3 @@ with open('CSV_CCM.csv', 'r') as csv_file:
             elif(re.match(pattern_CCM_25A, line[0])):
                 new_CCM.dict_update_25A(line)
                 new_CCM.increment_total()
-
-    output_stream = open("Demonstration_Output_CCM.txt","w")
-    if (output_stream):
-        output_stream.write(new_CCM.output_stream())
-        output_stream.write("\n")
-        output_stream.write(new_CCM.output_stream_individual_stats())
-    else:
-        print("Output stream failed to open.")    
