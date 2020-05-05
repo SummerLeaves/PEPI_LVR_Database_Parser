@@ -27,11 +27,31 @@ class DCB:
     def __init__(self):
         self.bad_DCB = {}
         self.good_DCB = {}
-        self.unknown_DCB = {}
+        self.other_DCB = {}
         self.num_assembled = 0
-        self.num_not_assembled = 0
-        self.num_unknown = 0
+        self.num_unassembled = 0
+        self.num_other = 0
         self.num_total = 0
+
+        self.idx_columns = {} 
+
+    def set_idx_columns(self, start_idx):
+        #Set the starting column, the DCB serial numbers.
+        self.idx_columns["Serial"] = start_idx
+
+        #After setting the DCB serial number's column,
+        #set the other indices.
+        self.idx_columns["ID"] = self.idx_columns["Serial"] + 1
+        self.idx_columns["Location"] = self.idx_columns["Serial"] + 2
+        self.idx_columns["Assembled"] = self.idx_columns["Serial"] + 3
+        self.idx_columns["Fused"] = self.idx_columns["Serial"] + 4
+        self.idx_columns["PRBS"] = self.idx_columns["Serial"] + 5
+        self.idx_columns["1.5V"] = self.idx_columns["Serial"] + 6
+        self.idx_columns["2.5V"] = self.idx_columns["Serial"] + 7
+        self.idx_columns["Burned_In"] = self.idx_columns["Serial"] + 8
+        self.idx_columns["Stave_Test_JD10"] = self.idx_columns["Serial"] + 9
+        self.idx_columns["Stave_Test_JD11"] = self.idx_columns["Serial"] + 10
+        self.idx_columns["Comments"] = self.idx_columns["Serial"] + 11
 
     def increment_total(self):
         self.num_total += 1
@@ -39,7 +59,7 @@ class DCB:
     def py_plot(self):
         # Data to plot
         labels = 'Assembled\nDCBs', 'Unassembled\nand other DCBs'
-        sizes = [self.num_assembled, self.num_not_assembled + self.num_unknown]
+        sizes = [self.get_num_assembled(), self.get_num_unassembled() + self.get_num_other()]
         colors = ['blue', 'red']
         patches, texts = plt.pie(sizes, colors=colors, shadow=True, startangle=90)
 
@@ -49,9 +69,9 @@ class DCB:
         plt.title("Ratio of Assembled DCBs\n(out of a total of " + str(self.num_total) + ')')
         plt.legend(patches, labels, loc="upper right")
         plt.axis('equal')
-        plt.xlabel("Assembled DCBs: " + str(self.num_assembled) + 
-        " | Unassembled DCBs: " + str(self.num_not_assembled) + 
-        " | Other DCBs: " + str(self.num_unknown))
+        plt.xlabel("Assembled DCBs: " + str(self.get_num_assembled()) + 
+        " | Unassembled DCBs: " + str(self.get_num_unassembled()) + 
+        " | Other DCBs: " + str(self.get_num_other()))
         plt.pie(sizes, labels=labels, colors=colors,
         autopct='%1.1f%%', shadow=True, startangle=140)
         plt.tight_layout()
@@ -61,10 +81,10 @@ class DCB:
         # plt.style.use('ggplot')
         colors = ['blue', 'red', 'yellow']
         labels = ['Assembled DCBs', 'Unassembled DCBs', 'Other DCBs']
-        num_totals = [self.num_assembled, self.num_not_assembled, self.num_unknown]
+        num_totals = [self.get_num_assembled(), self.get_num_unassembled(), self.get_num_other()]
         plt.figure(figsize = (14, 10))
         index = np.arange(len(labels))
-        plt.bar(index, num_totals, color = colors)
+        patches = plt.bar(index, num_totals, color = colors)
 
         plt.xlabel('DCB Type')
         plt.ylabel('Number of DCBs')
@@ -81,7 +101,7 @@ class DCB:
         
         # Plot
         plt.figure(figsize=(16,12))
-        plt.title("Ratio of Fused DCBs\n(out of a total of " + str(self.num_assembled) + ' Assembled DCBs)')
+        plt.title("Ratio of Fused DCBs\n(out of a total of " + str(self.get_num_assembled()) + ' Assembled DCBs)')
         plt.legend(patches, labels, loc="upper right")
         plt.axis('equal')
         plt.xlabel("Fused DCBs: " + str(sizes[0]) + 
@@ -92,30 +112,74 @@ class DCB:
         plt.tight_layout()
         plt.savefig('DCB_FusedPieChart.png', bbox_inches='tight', pad_inches = 0.2)
 
+        # Initial QA Vs. All Assembled DCBs
+        labels = 'Initial QA\'d,\nAssembled DCBs', 'Other Assembled DCBs'
+        sizes = self.process_initial_QA()
+        colors = ['blue', 'red']
+        patches, texts = plt.pie(sizes, colors=colors, shadow=True, startangle=90)
+        
+        # Plot
+        plt.figure(figsize=(16,12))
+        plt.title("Ratio of Initial QA\'d DCBs\n(out of a total of " + str(self.get_num_assembled()) + ' Assembled DCBs)')
+        plt.legend(patches, labels, loc="upper right")
+        plt.axis('equal')
+        plt.xlabel("Initial QA'd DCBs: " + str(sizes[0]) + 
+        " | Other Assembled DCBs: " + str(sizes[1]))
+
+        plt.pie(sizes, labels=labels, colors=colors,
+        autopct='%1.1f%%', shadow=True, startangle=120)
+        plt.tight_layout()
+        plt.savefig('DCB_InitialQAPieChart.png', bbox_inches='tight', pad_inches = 0.2)
+
     def process_fused(self):
         number_fused = 0
-        number_not_fused = 0
+        fused_idx = self.get_idx("Fused")
 
         for value in self.good_DCB.values():
-            if (value[2] == 'yes' or value[2] == 'Yes'):
+            if (value[fused_idx] == 'yes' or value[fused_idx] == 'Yes'):
                 number_fused += 1
-            
-        number_not_fused = self.num_assembled - number_fused
 
-        result = [number_fused, number_not_fused]
+        result = [number_fused, self.get_num_assembled() - number_fused]
         return result
 
+    def process_initial_QA(self):
+        number_passed = 0
+        fused_idx = self.get_idx("Fused")
+        PRBS_idx = self.get_idx("PRBS")
+        first_volt_idx = self.get_idx("1.5V")
+        second_volt_idx = self.get_idx("2.5V")
+
+        for value in self.good_DCB.values():
+            if ((value[fused_idx] == "Yes" or value[fused_idx] == "yes")
+            and (value[PRBS_idx] == "Yes" or value[PRBS_idx] == "yes")
+            and (value[first_volt_idx] and value[second_volt_idx])):
+                number_passed += 1
+
+        return [number_passed, self.get_num_assembled() - number_passed]
+
     def assembled_dict_update(self, line):
-        self.good_DCB[line[1]] = line[2:12]
+        self.good_DCB[line[self.get_idx("Serial")]] = line[self.get_idx("Serial"):self.get_idx("Comments") + 1]
         self.num_assembled += 1
     
-    def not_assembled_dict_update(self, line):
-        self.bad_DCB[line[1]] = line[2:12]
-        self.num_not_assembled += 1
+    def unassembled_dict_update(self, line):
+        self.bad_DCB[line[self.get_idx("Serial")]] = line[self.get_idx("Serial"):self.get_idx("Comments") + 1]
+        self.num_unassembled += 1
 
-    def unknown_dict_update(self, line):
-        self.unknown_DCB[line[1]] = line[2:12]
-        self.num_unknown += 1
+    def other_dict_update(self, line):
+        self.other_DCB[line[self.get_idx("Serial")]] = line[self.get_idx("Serial"):self.get_idx("Comments") + 1]
+        self.num_other += 1
+
+    def get_idx(self, key):
+        return self.idx_columns[key]
+
+    def get_num_assembled(self):
+        return self.num_assembled
+    
+    def get_num_unassembled(self):
+        return self.num_unassembled
+    
+    def get_num_other(self):
+        return self.num_other
 
 class LVR:
 
@@ -195,11 +259,11 @@ class CCM:
         self.CCM_25A[line[0]] = line[2:9]
         self.num_25A += int(line[5]) 
 
-def process_line(line):
-
-    if (line[3] == "Yes" or line[3] == 'yes'):
+def process_line(new_DCB, line):
+    assembled_idx = new_DCB.get_idx("Assembled")
+    if (line[assembled_idx] == "Yes" or line[assembled_idx] == 'yes'):
         return 1
-    elif(not line[3]):
+    elif(not line[assembled_idx]):
         return 2
     else:
         return 3
@@ -209,18 +273,21 @@ with open('CSV_DCB.csv', 'r') as csv_file:
     csv_reader = csv.reader(csv_file)
     new_DCB = DCB()
 
+    #Set the indices of the dictionary.
+    new_DCB.set_idx_columns(0)
+
     for line in csv_reader:
-        if re.match(pattern_DCB, line[0]):
-            assembled = process_line(line)
+        if re.match(pattern_DCB, line[new_DCB.idx_columns["Serial"]]):
+            assembled = process_line(new_DCB, line)
 
             if (assembled == 1):
                 new_DCB.assembled_dict_update(line)
 
             elif (assembled == 2):
-                new_DCB.not_assembled_dict_update(line) 
+                new_DCB.unassembled_dict_update(line) 
 
             else:
-                new_DCB.unknown_dict_update(line)
+                new_DCB.other_dict_update(line)
             
             new_DCB.increment_total()
 
