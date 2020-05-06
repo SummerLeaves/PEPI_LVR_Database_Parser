@@ -1,0 +1,48 @@
+Backplanes (+ P2B2s),,,,,,,,,
+,,,,,,,,,
+Status Summary,,,,,,,,,
+Type-Variant,Burned-in,QA'ed,,,,,,,
+True-F,4,1,,,,,,,
+True-P,5,1,,,,,,,
+True-D,3,1,,,,,,,
+Mirror-F,3,1,,,,,,,
+Mirror-D,6,1,,,,,,,
+Mirror-P,3,1,,,,,,,
+Total,24,6,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+,,,,,,,,,
+Type,Variant,SN,"ID 
+(Type+Variant+unique#)",Location,Visual Inspection,Burn-in,QA,Assembly,Notes
+,,,,,,,,,
+True,F,002-001,TF1,CERN,Yes,Yes,Yes,Yes,Have re-done continuity test with new P2B2
+True,F,002-002,,UMD,Yes,No,Yes,No,RMA reworked. See https://github.com/umd-lhcb/lab-notes/issues/53#issuecomment-557333122
+True,F,,,,Yes,Yes,,,
+True,F,,,,Yes,Yes,,,
+True,F,,,,Yes,Yes,,,
+True,P,016-002,TP3,CERN,Yes,Yes,Yes,Yes,Depopulation to be verified
+True,P,,,,Yes,Yes,,,
+True,P,,,,Yes,Yes,,,
+True,P,,,,Yes,Yes,,,
+True,P,,,,Yes,Yes,,,
+True,P,,,,,,,,
+True,P,,,,,,,,
+True,D,012-001,TD5,CERN,Yes,Yes,Yes,Yes,Depopulation to be verified
+True,D,,,,Yes,Yes,,,
+True,D,,,,Yes,Yes,,,
+Mirror,F,001-001,,UMD,Yes,Yes,Yes,No,* Being used in PEPI crate stave testing -- considered burned-in.
+Mirror,F,004-002,,UMD,Yes,No,Yes,No,RMA reworked. See https://github.com/umd-lhcb/lab-notes/issues/57#issuecomment-573737356
+Mirror,F,006-002,MF2,CERN,Yes,Yes,Yes,Yes,
+Mirror,F,,,,Yes,Yes,,,
+Mirror,F,,,,,,,,
+Mirror,P,013-002,MP4,CERN,Yes,Yes,Yes,Yes,Depopulation to be verified
+Mirror,P,,,,Yes,Yes,,,
+Mirror,P,,,,Yes,Yes,,,
+Mirror,P,,,,Yes,Yes,,,
+Mirror,P,,,,Yes,Yes,,,
+Mirror,P,,,,Yes,Yes,,,
+Mirror,P,,,,,,,,
+Mirror,D,012-001,,UMD,Yes,Yes,,,To be RMAed: https://github.com/umd-lhcb/lab-notes/issues/53#issuecomment-592755581
+Mirror,D,008-001,,UMD,Yes,Yes,,,To be RMAed: https://github.com/umd-lhcb/lab-notes/issues/53#issuecomment-592755581
+Mirror,D,008-002,MD6,CERN,Yes,Yes,Yes,Yes,Depopulation to be verified

@@ -22,12 +22,19 @@ pattern_CCM_15M = re.compile('^(15M)[\\d|(\\d\\d)]')
 pattern_CCM_15S = re.compile('^(15S)[\\d|(\\d\\d)]')
 pattern_CCM_25A = re.compile('^(25A)[\\d|(\\d\\d)]')
 
+def check_yes(target):
+    if (target == "Yes" or target == "yes"):
+        return True
+    else:
+        return False
+
 class DCB:
 
     def __init__(self):
         self.bad_DCB = {}
         self.good_DCB = {}
         self.other_DCB = {}
+
         self.num_assembled = 0
         self.num_unassembled = 0
         self.num_other = 0
@@ -64,6 +71,56 @@ class DCB:
 
     def increment_total(self):
         self.num_total += 1
+
+    def assembled_dict_update(self, line):
+        self.good_DCB[line[self.get_idx("Serial")]] = line[self.get_idx("Serial"):self.get_idx("Comments") + 1]
+        self.num_assembled += 1
+    
+    def unassembled_dict_update(self, line):
+        self.bad_DCB[line[self.get_idx("Serial")]] = line[self.get_idx("Serial"):self.get_idx("Comments") + 1]
+        self.num_unassembled += 1
+
+    def other_dict_update(self, line):
+        self.other_DCB[line[self.get_idx("Serial")]] = line[self.get_idx("Serial"):self.get_idx("Comments") + 1]
+        self.num_other += 1
+
+    def get_idx(self, key):
+        return self.DCB_columns[key]
+
+    def get_num_assembled(self):
+        return self.num_assembled
+    
+    def get_num_unassembled(self):
+        return self.num_unassembled
+    
+    def get_num_other(self):
+        return self.num_other
+
+    def process_fused(self):
+        number_fused = 0
+        fused_idx = self.get_idx("Fused")
+
+        for value in self.good_DCB.values():
+            if (value[fused_idx] == 'yes' or value[fused_idx] == 'Yes'):
+                number_fused += 1
+
+        result = [number_fused, self.get_num_assembled() - number_fused]
+        return result
+
+    def process_initial_QA(self):
+        number_passed = 0
+        fused_idx = self.get_idx("Fused")
+        PRBS_idx = self.get_idx("PRBS")
+        first_volt_idx = self.get_idx("1.5V")
+        second_volt_idx = self.get_idx("2.5V")
+
+        for value in self.good_DCB.values():
+            if ((value[fused_idx] == "Yes" or value[fused_idx] == "yes")
+            and (value[PRBS_idx] == "Yes" or value[PRBS_idx] == "yes")
+            and (value[first_volt_idx] and value[second_volt_idx])):
+                number_passed += 1
+
+        return [number_passed, self.get_num_assembled() - number_passed]
 
     def pyplot(self):
         # Data to plot
@@ -143,56 +200,6 @@ class DCB:
         autopct='%1.1f%%', shadow=True, startangle=120)
         plt.tight_layout()
         plt.savefig('DCB_InitialQAPieChart.png', bbox_inches='tight', pad_inches = 0.2)
-
-    def process_fused(self):
-        number_fused = 0
-        fused_idx = self.get_idx("Fused")
-
-        for value in self.good_DCB.values():
-            if (value[fused_idx] == 'yes' or value[fused_idx] == 'Yes'):
-                number_fused += 1
-
-        result = [number_fused, self.get_num_assembled() - number_fused]
-        return result
-
-    def process_initial_QA(self):
-        number_passed = 0
-        fused_idx = self.get_idx("Fused")
-        PRBS_idx = self.get_idx("PRBS")
-        first_volt_idx = self.get_idx("1.5V")
-        second_volt_idx = self.get_idx("2.5V")
-
-        for value in self.good_DCB.values():
-            if ((value[fused_idx] == "Yes" or value[fused_idx] == "yes")
-            and (value[PRBS_idx] == "Yes" or value[PRBS_idx] == "yes")
-            and (value[first_volt_idx] and value[second_volt_idx])):
-                number_passed += 1
-
-        return [number_passed, self.get_num_assembled() - number_passed]
-
-    def assembled_dict_update(self, line):
-        self.good_DCB[line[self.get_idx("Serial")]] = line[self.get_idx("Serial"):self.get_idx("Comments") + 1]
-        self.num_assembled += 1
-    
-    def unassembled_dict_update(self, line):
-        self.bad_DCB[line[self.get_idx("Serial")]] = line[self.get_idx("Serial"):self.get_idx("Comments") + 1]
-        self.num_unassembled += 1
-
-    def other_dict_update(self, line):
-        self.other_DCB[line[self.get_idx("Serial")]] = line[self.get_idx("Serial"):self.get_idx("Comments") + 1]
-        self.num_other += 1
-
-    def get_idx(self, key):
-        return self.DCB_columns[key]
-
-    def get_num_assembled(self):
-        return self.num_assembled
-    
-    def get_num_unassembled(self):
-        return self.num_unassembled
-    
-    def get_num_other(self):
-        return self.num_other
 
 class LVR:
 
@@ -348,48 +355,42 @@ class LVR:
         idx_SPI = self.get_idx("SPI_Test", 0)
 
         for value in self.LVR_12A.values():
-            if ((self.check_yes(value[idx_voltage]))
-            and (self.check_yes(value[idx_FPGA]))
-            and (self.check_yes(value[idx_undervolt_overtemp_config]))
-            and (self.check_yes(value[idx_undervolt_test]))
-            and (self.check_yes(value[idx_overtemp_test]))
-            and (self.check_yes(value[idx_output_config]))
-            and (self.check_yes(value[idx_sense_line_test]))
-            and (self.check_yes(value[idx_SPI]))):
+            if ((check_yes(value[idx_voltage]))
+            and (check_yes(value[idx_FPGA]))
+            and (check_yes(value[idx_undervolt_overtemp_config]))
+            and (check_yes(value[idx_undervolt_test]))
+            and (check_yes(value[idx_overtemp_test]))
+            and (check_yes(value[idx_output_config]))
+            and (check_yes(value[idx_sense_line_test]))
+            and (check_yes(value[idx_SPI]))):
                 num_LVR_12A_QA += 1
 
         for value in self.LVR_25A.values():
-            if ((self.check_yes(value[idx_voltage]))
-            and (self.check_yes(value[idx_FPGA]))
-            and (self.check_yes(value[idx_undervolt_overtemp_config]))
-            and (self.check_yes(value[idx_undervolt_test]))
-            and (self.check_yes(value[idx_overtemp_test]))
-            and (self.check_yes(value[idx_output_config]))
-            and (self.check_yes(value[idx_sense_line_test]))
-            and (self.check_yes(value[idx_SPI]))):
+            if ((check_yes(value[idx_voltage]))
+            and (check_yes(value[idx_FPGA]))
+            and (check_yes(value[idx_undervolt_overtemp_config]))
+            and (check_yes(value[idx_undervolt_test]))
+            and (check_yes(value[idx_overtemp_test]))
+            and (check_yes(value[idx_output_config]))
+            and (check_yes(value[idx_sense_line_test]))
+            and (check_yes(value[idx_SPI]))):
                 num_LVR_25A_QA += 1
 
         for value in self.LVR_15MS.values():
-            if ((self.check_yes(value[idx_voltage]))
-            and (self.check_yes(value[idx_FPGA]))
-            and (self.check_yes(value[idx_undervolt_overtemp_config]))
-            and (self.check_yes(value[idx_undervolt_test]))
-            and (self.check_yes(value[idx_overtemp_test]))
-            and (self.check_yes(value[idx_output_config]))
-            and (self.check_yes(value[idx_sense_line_test]))
-            and (self.check_yes(value[idx_SPI]))):
+            if ((check_yes(value[idx_voltage]))
+            and (check_yes(value[idx_FPGA]))
+            and (check_yes(value[idx_undervolt_overtemp_config]))
+            and (check_yes(value[idx_undervolt_test]))
+            and (check_yes(value[idx_overtemp_test]))
+            and (check_yes(value[idx_output_config]))
+            and (check_yes(value[idx_sense_line_test]))
+            and (check_yes(value[idx_SPI]))):
                 num_LVR_15MS_QA += 1
         
         return [num_LVR_12A_QA, num_LVR_25A_QA, num_LVR_15MS_QA,
                 self.get_num_LVR_12A() - num_LVR_12A_QA,
                 self.get_num_LVR_25A() - num_LVR_25A_QA,
                 self.get_num_LVR_15MS() - num_LVR_15MS_QA]
-
-    def check_yes(self, target):
-        if (target == "Yes" or target == "yes"):
-            return True
-        else:
-            return False
 
     def pyplot(self):
         # LVR Type Breakdown
@@ -425,7 +426,7 @@ class LVR:
         # Plot
         plt.figure(figsize=(16,12))
         plt.title("Ratios of Initial QA\'d LVRs\n(out of a total of " + 
-        str(LVR_QA_list[0] + LVR_QA_list[1] + LVR_QA_list[2]) + "QA'd LVRs")
+        str(LVR_QA_list[0] + LVR_QA_list[1] + LVR_QA_list[2]) + " QA'd LVRs)")
         plt.legend(patches, labels, loc="upper right")
         plt.axis('equal')
         plt.xlabel("Initial QA'd 12A LVRs: " + str(sizes[0]) + 
@@ -474,32 +475,61 @@ class CCM:
         self.num_25A = 0
         self.num_total = 0
 
+        self.CCM_columns = {}
+
+    def set_CCM_columns(self, start_idx):
+        self.CCM_columns["Roll_ID"] = start_idx
+
+        reference_idx = self.CCM_columns["Roll_ID"]
+        self.CCM_columns["Location"] = reference_idx + 1
+        self.CCM_columns["CCM_Type"] = reference_idx + 2
+        self.CCM_columns["Master_or_Slave"] = reference_idx + 3
+        self.CCM_columns["Original_Count"] = reference_idx + 4
+        self.CCM_columns["Good_Count"] = reference_idx + 5
+        self.CCM_columns["Usage"] = reference_idx + 6
+        self.CCM_columns["Comment"] = reference_idx + 7
+
     def increment_total(self):
         self.num_total += 1
     
     def dict_update_12A(self, line):
-        self.CCM_12A[line[0]] = line[2:9]
-        self.num_12A += int(line[5]) 
+        idx_start = self.get_idx("Roll_ID")
+        idx_end = self.get_idx("Comment") + 1
+        self.CCM_12A[line[idx_start]] = line[idx_start:idx_end]
+        self.num_12A += int(line[self.get_idx("Good_Count")]) 
 
     def dict_update_12M(self, line):
-        self.CCM_12M[line[0]] = line[2:9]
-        self.num_12M += int(line[5]) 
+        idx_start = self.get_idx("Roll_ID")
+        idx_end = self.get_idx("Comment") + 1
+        self.CCM_12M[line[idx_start]] = line[idx_start:idx_end]
+        self.num_12M += int(line[self.get_idx("Good_Count")]) 
 
     def dict_update_12S(self, line):
-        self.CCM_12S[line[0]] = line[2:9]
-        self.num_12S += int(line[5]) 
+        idx_start = self.get_idx("Roll_ID")
+        idx_end = self.get_idx("Comment") + 1
+        self.CCM_12S[line[idx_start]] = line[idx_start:idx_end]
+        self.num_12S += int(line[self.get_idx("Good_Count")]) 
 
     def dict_update_15M(self, line):
-        self.CCM_15M[line[0]] = line[2:9]
-        self.num_15M += int(line[5]) 
+        idx_start = self.get_idx("Roll_ID")
+        idx_end = self.get_idx("Comment") + 1
+        self.CCM_15M[line[idx_start]] = line[idx_start:idx_end]
+        self.num_15M += int(line[self.get_idx("Good_Count")]) 
 
     def dict_update_15S(self, line):
-        self.CCM_15S[line[0]] = line[2:9]
-        self.num_15S += int(line[5]) 
+        idx_start = self.get_idx("Roll_ID")
+        idx_end = self.get_idx("Comment") + 1
+        self.CCM_15S[line[idx_start]] = line[idx_start:idx_end]
+        self.num_15S += int(line[self.get_idx("Good_Count")]) 
 
     def dict_update_25A(self, line):
-        self.CCM_25A[line[0]] = line[2:9]
-        self.num_25A += int(line[5]) 
+        idx_start = self.get_idx("Roll_ID")
+        idx_end = self.get_idx("Comment") + 1
+        self.CCM_25A[line[idx_start]] = line[idx_start:idx_end]
+        self.num_25A += int(line[self.get_idx("Good_Count")]) 
+
+    def get_idx(self, target):
+        return self.CCM_columns[target]
 
     def pyplot(self):
         # Bar Plot
@@ -511,11 +541,128 @@ class CCM:
         patches = plt.bar(index, num_totals, color = colors)
 
         plt.xlabel('CCM Type')
-        plt.ylabel('Number of CCMs')
+        plt.ylabel("Number of QA'd CCMs")
         plt.xticks(index, labels)
-        plt.title('Produced CCMs By Type')
+        plt.title("QA'd CCMs By Type")
         plt.legend(patches, labels, loc="upper right")
-        plt.savefig('CCM_AssemblyBarChart.png')
+        plt.savefig('CCM_QABarChart.png')
+
+class Backplane:
+    def __init__(self):
+        self.true_backplanes = {}
+        self.mirror_backplanes = {}
+
+        self.num_true_backplanes = 0
+        self.num_mirror_backplanes = 0
+        self.num_total_backplanes = 0
+
+        self.backplane_columns = {}
+
+    def set_backplane_columns(self, idx_start):
+        self.backplane_columns["Type"] = idx_start
+
+        idx_reference = self.backplane_columns["Type"]
+        self.backplane_columns["Variant"] = idx_reference + 1
+        self.backplane_columns["SN"] = idx_reference + 2
+        self.backplane_columns["ID"] = idx_reference + 3
+        self.backplane_columns["Location"] = idx_reference + 4
+        self.backplane_columns["Visual_Inspection"] = idx_reference + 5
+        self.backplane_columns["Burn_In"] = idx_reference + 6
+        self.backplane_columns["QA"] = idx_reference + 7
+        self.backplane_columns["Assembly"] = idx_reference + 8
+        self.backplane_columns["Note"] = idx_reference + 9
+
+    def update_true_backplanes(self, line):
+        idx_backplane = self.get_num_true_backplanes()
+        idx_start = self.get_idx("Type")
+        idx_end = self.get_idx("Note") + 1
+        self.true_backplanes[idx_backplane] = line[idx_start:idx_end]
+
+    def update_mirror_backplanes(self, line):
+        idx_backplane = self.get_num_mirror_backplanes()
+        idx_start = self.get_idx("Type")
+        idx_end = self.get_idx("Note") + 1
+        self.mirror_backplanes[idx_backplane] = line[idx_start:idx_end]
+
+    def increment_num_true_backplanes(self):
+        self.num_true_backplanes += 1
+    
+    def increment_num_mirror_backplanes(self):
+        self.num_mirror_backplanes += 1
+
+    def increment_total(self):
+        self.num_total_backplanes += 1
+
+    def get_idx(self, target):
+        return self.backplane_columns[target]
+
+    def get_num_true_backplanes(self):
+        return self.num_true_backplanes
+    
+    def get_num_mirror_backplanes(self):
+        return self.num_mirror_backplanes
+
+    def process_QA(self):
+        idx_QA = self.get_idx("QA")
+        num_true_backplanes_passed = 0
+        num_mirror_backplanes_passed = 0
+
+        for value in self.true_backplanes.values():
+            if (check_yes(value[idx_QA])):
+                num_true_backplanes_passed += 1
+        
+        for value in self.mirror_backplanes.values():
+            if (check_yes(value[idx_QA])):
+                num_mirror_backplanes_passed += 1
+
+        return [num_true_backplanes_passed, self.get_num_true_backplanes() - num_true_backplanes_passed,
+                num_mirror_backplanes_passed, self.get_num_mirror_backplanes() - num_mirror_backplanes_passed]
+
+    def pyplot(self):
+        # QA'd True Backplanes Vs. All True Backplanes
+        labels = "QA'd True Backplanes", "Other True Backplanes"
+        QA_List = self.process_QA()
+        sizes = QA_List[0:2]
+        colors = ['blue', 'red']
+        patches, texts = plt.pie(sizes, colors=colors, shadow=True, startangle=90)
+        
+        #To suppress warning.
+        texts = texts
+
+        # Plot
+        plt.figure(figsize=(16,12))
+        plt.title("Ratio of QA'd True Backplanes\n(out of a total of " + str(self.get_num_true_backplanes()) + ' True Backplanes)')
+        plt.legend(patches, labels, loc="upper right")
+        plt.axis('equal')
+        plt.xlabel("QA'd True Backplanes: " + str(sizes[0]) + 
+        " | Other True Backplanes: " + str(sizes[1]))
+
+        plt.pie(sizes, labels=labels, colors=colors,
+        autopct='%1.1f%%', shadow=True, startangle=120)
+        plt.tight_layout()
+        plt.savefig('Backplane_True_QAPieChart.png', bbox_inches='tight', pad_inches = 0.2)
+
+        # QA'd Mirror Backplanes Vs. All other Mirror Backplanes
+        labels = "QA'd Mirror Backplanes", "Other Mirror Backplanes"
+        sizes = QA_List[2:4]
+        colors = ['blue', 'red']
+        patches, texts = plt.pie(sizes, colors=colors, shadow=True, startangle=90)
+        
+        #To suppress warning.
+        texts = texts
+
+        # Plot
+        plt.figure(figsize=(16,12))
+        plt.title("Ratio of QA'd Mirror Backplanes\n(out of a total of " + str(self.get_num_true_backplanes()) + ' Mirror Backplanes)')
+        plt.legend(patches, labels, loc="upper right")
+        plt.axis('equal')
+        plt.xlabel("QA'd Mirror Backplanes: " + str(sizes[0]) + 
+        " | Other Mirror Backplanes: " + str(sizes[1]))
+
+        plt.pie(sizes, labels=labels, colors=colors,
+        autopct='%1.1f%%', shadow=True, startangle=120)
+        plt.tight_layout()
+        plt.savefig('Backplane_Mirror_QAPieChart.png', bbox_inches='tight', pad_inches = 0.2)
 
 #Driver for reading/parsing/writing the DCB portion of the database.
 with open('CSV_DCB.csv', 'r') as csv_file:
@@ -572,45 +719,69 @@ with open('CSV_LVR.csv', 'r') as csv_file:
             new_LVR.increment_total()
 
     new_LVR.pyplot()
+    """
     output_stream = open("Demonstration_Output_LVR.txt","w")
     if (output_stream):
         output_stream.write(new_LVR.output_stream())
         output_stream.write("\n")
         output_stream.write(new_LVR.output_stream_individual_stats())
     else:
-        print("Output stream failed to open.")      
+        print("Output stream failed to open.")     
+    """
         
 #Driver for reading/parsing/writing the CCM portion of the database.
 with open('CSV_CCM.csv', 'r') as csv_file:
+
     csv_reader = csv.reader(csv_file)
     new_CCM = CCM()
+    new_CCM.set_CCM_columns(0)
+    idx_roll = new_CCM.get_idx("Roll_ID")
 
     for line in csv_reader:
 
         #increment_total() is included for symmetry with the DCB loop.
         if (line[5] != ''):
-            if (re.match(pattern_CCM_12A, line[0])):
+            if (re.match(pattern_CCM_12A, line[idx_roll])):
                 new_CCM.dict_update_12A(line)
                 new_CCM.increment_total()
                 
-            elif(re.match(pattern_CCM_12M, line[0])):
+            elif(re.match(pattern_CCM_12M, line[idx_roll])):
                 new_CCM.dict_update_12M(line)
                 new_CCM.increment_total()
             
-            elif(re.match(pattern_CCM_12S, line[0])):
+            elif(re.match(pattern_CCM_12S, line[idx_roll])):
                 new_CCM.dict_update_12S(line)
                 new_CCM.increment_total()
 
-            elif(re.match(pattern_CCM_15M, line[0])):
+            elif(re.match(pattern_CCM_15M, line[idx_roll])):
                 new_CCM.dict_update_15M(line)
                 new_CCM.increment_total()
 
-            elif(re.match(pattern_CCM_15S, line[0])):
+            elif(re.match(pattern_CCM_15S, line[idx_roll])):
                 new_CCM.dict_update_15S(line)
                 new_CCM.increment_total()
 
-            elif(re.match(pattern_CCM_25A, line[0])):
+            elif(re.match(pattern_CCM_25A, line[idx_roll])):
                 new_CCM.dict_update_25A(line)
                 new_CCM.increment_total()
                 
     new_CCM.pyplot()
+
+#Driver for reading/parsing//writing the Backplane portion of the database.
+with open('CSV_Backplane.csv', 'r') as csv_file:
+
+    csv_reader = csv.reader(csv_file)
+    new_backplane = Backplane()
+    new_backplane.set_backplane_columns(0)
+    idx_type = new_backplane.get_idx("Type")
+
+    for line in csv_reader:
+        if (line[idx_type] == "True"):
+            new_backplane.update_true_backplanes(line)
+            new_backplane.increment_num_true_backplanes()
+
+        elif (line[idx_type] == "Mirror"):
+            new_backplane.update_mirror_backplanes(line)
+            new_backplane.increment_num_mirror_backplanes()
+        
+    new_backplane.pyplot()
