@@ -33,35 +33,48 @@ class DCB:
         self.num_other = 0
         self.num_total = 0
 
-        self.idx_columns = {} 
+        self.DCB_columns = {} 
 
-    def set_idx_columns(self, start_idx):
+    def set_DCB_columns(self, start_idx):
         #Set the starting column, the DCB serial numbers.
-        self.idx_columns["Serial"] = start_idx
+        self.DCB_columns["Serial"] = start_idx
 
         #After setting the DCB serial number's column,
         #set the other indices.
-        self.idx_columns["ID"] = self.idx_columns["Serial"] + 1
-        self.idx_columns["Location"] = self.idx_columns["Serial"] + 2
-        self.idx_columns["Assembled"] = self.idx_columns["Serial"] + 3
-        self.idx_columns["Fused"] = self.idx_columns["Serial"] + 4
-        self.idx_columns["PRBS"] = self.idx_columns["Serial"] + 5
-        self.idx_columns["1.5V"] = self.idx_columns["Serial"] + 6
-        self.idx_columns["2.5V"] = self.idx_columns["Serial"] + 7
-        self.idx_columns["Burned_In"] = self.idx_columns["Serial"] + 8
-        self.idx_columns["Stave_Test_JD10"] = self.idx_columns["Serial"] + 9
-        self.idx_columns["Stave_Test_JD11"] = self.idx_columns["Serial"] + 10
-        self.idx_columns["Comments"] = self.idx_columns["Serial"] + 11
+        self.DCB_columns["ID"] = self.DCB_columns["Serial"] + 1
+        self.DCB_columns["Location"] = self.DCB_columns["Serial"] + 2
+        self.DCB_columns["Assembled"] = self.DCB_columns["Serial"] + 3
+        self.DCB_columns["Fused"] = self.DCB_columns["Serial"] + 4
+        self.DCB_columns["PRBS"] = self.DCB_columns["Serial"] + 5
+        self.DCB_columns["1.5V"] = self.DCB_columns["Serial"] + 6
+        self.DCB_columns["2.5V"] = self.DCB_columns["Serial"] + 7
+        self.DCB_columns["Burned_In"] = self.DCB_columns["Serial"] + 8
+        self.DCB_columns["Stave_Test_JD10"] = self.DCB_columns["Serial"] + 9
+        self.DCB_columns["Stave_Test_JD11"] = self.DCB_columns["Serial"] + 10
+        self.DCB_columns["Comments"] = self.DCB_columns["Serial"] + 11
+    
+    def process_line(self, line):
+        assembled_idx = self.get_idx("Assembled")
+        if (line[assembled_idx] == "Yes" or line[assembled_idx] == 'yes'):
+            return 1
+        elif(not line[assembled_idx]):
+            return 2
+        else:
+            return 3
 
     def increment_total(self):
         self.num_total += 1
 
-    def py_plot(self):
+    def pyplot(self):
         # Data to plot
         labels = 'Assembled\nDCBs', 'Unassembled\nand other DCBs'
         sizes = [self.get_num_assembled(), self.get_num_unassembled() + self.get_num_other()]
         colors = ['blue', 'red']
         patches, texts = plt.pie(sizes, colors=colors, shadow=True, startangle=90)
+
+        #texts, the output of the above plt.pie call, is required for plt.legend() to function properly.
+        #This suppresses an unnecessary warning on the otherwise only implicitly used texts variable.
+        texts = texts
 
         # Plot
         plt.rcParams.update({'font.size': 20})
@@ -170,7 +183,7 @@ class DCB:
         self.num_other += 1
 
     def get_idx(self, key):
-        return self.idx_columns[key]
+        return self.DCB_columns[key]
 
     def get_num_assembled(self):
         return self.num_assembled
@@ -184,35 +197,264 @@ class DCB:
 class LVR:
 
     def __init__(self):
-        self.LVR_CZ = {}
-        self.LVR_EN = {}
-        self.LVR_ER = {}
-        self.LVR_ES = {}
+        self.LVR_12A = {}
+        self.LVR_25A = {}
+        self.LVR_15MS = {}
+        self.LVR_other = {}
 
-        self.num_LVR_CZ = 0
-        self.num_LVR_EN = 0
-        self.num_LVR_ER = 0
-        self.num_LVR_ES = 0
+        self.num_LVR_12A = 0
+        self.num_LVR_25A = 0
+        self.num_LVR_15MS = 0
+        self.num_LVR_other = 0
         self.num_total = 0
+
+        self.LVR_columns = {}
+
+    def output_stream(self):
+        result = "LVR General Stats\n"
+        result += "The total number of boards " + str(self.num_total) + "\n"
+        result += "Number of LVR Type 12A: " + str(self.num_LVR_12A) + "\n"
+        result += "Number of LVR Type 25A: " + str(self.num_LVR_25A) + "\n"
+        result += "Number of LVR Type 15MS: " + str(self.num_LVR_15MS) + "\n"
+        result += "Number of LVR Type Other: " + str(self.num_LVR_other) + "\n"
+        return result
+
+    def output_stream_individual_stats(self):
+        result = "LVR Stats\n"
+        serial_num_idx = self.get_idx("Serial", 0)
+        CCM_idx = self.get_idx("CCM", 0)
+
+        result += "\nType 12A LVR's\n"
+        for x, y in self.LVR_12A.items():
+            result += "For LVR with ID " + x + ", and serial number " + y[serial_num_idx] + ":"
+            result += "[CCM: " + y[CCM_idx] + "]" + "\n"
+
+        result += "\nType 25A LVR's\n"
+        for x, y in self.LVR_25A.items():
+            result += "For LVR with ID " + x + ", and serial number " + y[serial_num_idx] + ":"
+            result += "[CCM: " + y[CCM_idx] + "]" + "\n"
+
+        result += "\nType 15MS LVR's\n"
+        for x, y in self.LVR_15MS.items():
+            result += "For LVR with ID " + x + ", and serial number " + y[serial_num_idx] + ":"
+            result += "[CCM: " + y[CCM_idx] + "]" + "\n"
+
+        result += "\nType Other LVR's\n"
+        for x, y in self.LVR_other.items():
+            result += "For LVR with ID " + x + ", and serial number " + y[serial_num_idx] + ":"
+            result += "[CCM: " + y[CCM_idx] + "]" + "\n"
+
+        return result
+
+    def set_LVR_columns(self, serial_idx):
+
+        self.LVR_columns["Serial"] = serial_idx - 4
+
+        #After setting the column idx of the serial numbers,
+        #Set the other LVR column indices.
+        reference_idx = self.LVR_columns["Serial"]
+
+        self.LVR_columns["ID"] = reference_idx - 2
+        self.LVR_columns["Location"] = reference_idx - 1
+        self.LVR_columns["CCM"] = reference_idx + 1
+        self.LVR_columns["LVR_Type"] = reference_idx + 2
+        self.LVR_columns["Voltage_Check"] = reference_idx + 3
+        self.LVR_columns["FPGA"] = reference_idx + 4
+        self.LVR_columns["Undervolt_Overtemp_Config"] = reference_idx + 5
+        self.LVR_columns["Undervolt_Test"] = reference_idx + 6
+        self.LVR_columns["Overtemp_Test"] = reference_idx + 7
+        self.LVR_columns["Output_Config"] = reference_idx + 8
+        self.LVR_columns["Sense_Line_Test"] = reference_idx + 9
+        self.LVR_columns["SPI_Test"] = reference_idx + 10
+        self.LVR_columns["Assembled"] = reference_idx + 11
+        self.LVR_columns["SBC_Crate"] = reference_idx + 12
+        self.LVR_columns["Start_Time"] = reference_idx + 13
+        self.LVR_columns["End_Time"] = reference_idx + 14
+        self.LVR_columns["Final_QA"] = reference_idx + 15
+        self.LVR_columns["Subtype"] = reference_idx + 16     
+        self.LVR_columns["Comment"] = reference_idx + 17
+
+    def process_line(self, line):
+        LVR_Type_idx = self.get_idx("LVR_Type", 4)
+        if (line[LVR_Type_idx] == "12A"):
+            return 1
+
+        elif (line[LVR_Type_idx] == "25A"):
+            return 2
+
+        elif (line[LVR_Type_idx] == "15MS"):
+            return 3
+
+        else:
+            return -1
 
     def increment_total(self):
         self.num_total += 1
 
-    def dict_update_CZ(self, line):
-        self.LVR_CZ[line[4]] = line[5:24]
-        self.num_LVR_CZ += 1
+    def dict_update_LVR_12A(self, line):
+        start_idx = self.get_idx("ID", 4)
+        end_idx = self.get_idx("Comment", 4) + 1
 
-    def dict_update_EN(self, line):
-        self.LVR_EN[line[4]] = line[5:24]
-        self.num_LVR_EN += 1
+        self.LVR_12A[line[start_idx]] = line[start_idx:end_idx]
+        self.num_LVR_12A += 1
 
-    def dict_update_ER(self, line):
-        self.LVR_ER[line[4]] = line[5:24]
-        self.num_LVR_ER += 1
+    def dict_update_LVR_25A(self, line):
+        start_idx = self.get_idx("ID", 4)
+        end_idx = self.get_idx("Comment", 4) + 1
 
-    def dict_update_ES(self, line):
-        self.LVR_ES[line[4]] = line[5:24]
-        self.num_LVR_ES += 1
+        self.LVR_25A[line[start_idx]] = line[start_idx:end_idx]
+        self.num_LVR_25A += 1
+
+    def dict_update_LVR_15MS(self, line):
+        start_idx = self.get_idx("ID", 4)
+        end_idx = self.get_idx("Comment", 4) + 1
+
+        self.LVR_15MS[line[start_idx]] = line[start_idx:end_idx]
+        self.num_LVR_15MS += 1
+
+    def dict_update_LVR_other(self, line):
+        start_idx = self.get_idx("ID", 4)
+        end_idx = self.get_idx("Comment", 4) + 1
+
+        self.LVR_other[line[start_idx]] = line[start_idx:end_idx]
+        self.num_LVR_other += 1
+    
+    def get_num_total(self):
+        return self.num_total
+
+    def get_num_LVR_12A(self):
+        return self.num_LVR_12A
+    
+    def get_num_LVR_25A(self):
+        return self.num_LVR_25A
+
+    def get_num_LVR_15MS(self):
+        return self.num_LVR_15MS
+    
+    def get_idx(self, target, offset):
+        return self.LVR_columns[target] + offset
+
+    def process_initial_QA(self):
+        num_LVR_12A_QA = 0
+        num_LVR_25A_QA = 0
+        num_LVR_15MS_QA = 0
+        idx_voltage = self.get_idx("Voltage_Check", 0)
+        idx_FPGA = self.get_idx("FPGA", 0)
+        idx_undervolt_overtemp_config = self.get_idx("Undervolt_Overtemp_Config", 0)
+        idx_undervolt_test = self.get_idx("Undervolt_Test", 0)
+        idx_overtemp_test = self.get_idx("Overtemp_Test", 0)
+        idx_output_config = self.get_idx("Output_Config", 0)
+        idx_sense_line_test = self.get_idx("Sense_Line_Test", 0)
+        idx_SPI = self.get_idx("SPI_Test", 0)
+
+        for value in self.LVR_12A.values():
+            if ((self.check_yes(value[idx_voltage]))
+            and (self.check_yes(value[idx_FPGA]))
+            and (self.check_yes(value[idx_undervolt_overtemp_config]))
+            and (self.check_yes(value[idx_undervolt_test]))
+            and (self.check_yes(value[idx_overtemp_test]))
+            and (self.check_yes(value[idx_output_config]))
+            and (self.check_yes(value[idx_sense_line_test]))
+            and (self.check_yes(value[idx_SPI]))):
+                num_LVR_12A_QA += 1
+
+        for value in self.LVR_25A.values():
+            if ((self.check_yes(value[idx_voltage]))
+            and (self.check_yes(value[idx_FPGA]))
+            and (self.check_yes(value[idx_undervolt_overtemp_config]))
+            and (self.check_yes(value[idx_undervolt_test]))
+            and (self.check_yes(value[idx_overtemp_test]))
+            and (self.check_yes(value[idx_output_config]))
+            and (self.check_yes(value[idx_sense_line_test]))
+            and (self.check_yes(value[idx_SPI]))):
+                num_LVR_25A_QA += 1
+
+        for value in self.LVR_15MS.values():
+            if ((self.check_yes(value[idx_voltage]))
+            and (self.check_yes(value[idx_FPGA]))
+            and (self.check_yes(value[idx_undervolt_overtemp_config]))
+            and (self.check_yes(value[idx_undervolt_test]))
+            and (self.check_yes(value[idx_overtemp_test]))
+            and (self.check_yes(value[idx_output_config]))
+            and (self.check_yes(value[idx_sense_line_test]))
+            and (self.check_yes(value[idx_SPI]))):
+                num_LVR_15MS_QA += 1
+        
+        return [num_LVR_12A_QA, num_LVR_25A_QA, num_LVR_15MS_QA,
+                self.get_num_LVR_12A() - num_LVR_12A_QA,
+                self.get_num_LVR_25A() - num_LVR_25A_QA,
+                self.get_num_LVR_15MS() - num_LVR_15MS_QA]
+
+    def check_yes(self, target):
+        if (target == "Yes" or target == "yes"):
+            return True
+        else:
+            return False
+
+    def pyplot(self):
+        # LVR Type Breakdown
+        plt.rcParams.update({'font.size': 20})
+        labels = "12A LVRs", "25A LVRs", "15MS LVRs"
+        sizes = [self.get_num_LVR_12A(), self.get_num_LVR_25A(), self.get_num_LVR_15MS()] 
+        colors = ['blue', 'red', 'yellow']
+        patches, texts = plt.pie(sizes, colors=colors, shadow=True, startangle=90)
+        
+        #texts, the output of the above plt.pie call, is required for plt.legend() to function properly.
+        #This suppresses an unnecessary warning on the otherwise only implicitly used texts variable.
+        texts = texts
+        
+        # Plot
+        plt.figure(figsize=(16,12))
+        plt.title("Relative Ratios of LVR Types\n(out of a total of " + str(self.get_num_total()) + ' Assembled LVRs)')
+        plt.legend(patches, labels, loc="upper right")
+        plt.axis('equal')
+        plt.xlabel("12A LVRs: " + str(sizes[0]) + 
+        " | 25A LVRs: " + str(sizes[1]) + " | 15MS LVRs: " + str(sizes[2]))
+
+        plt.pie(sizes, labels=labels, colors=colors,
+        autopct='%1.1f%%', shadow=True, startangle=45)
+        plt.tight_layout()
+        plt.savefig('LVRs_By_Type.png', bbox_inches='tight', pad_inches = 0.2)
+
+        LVR_QA_list = self.process_initial_QA()
+        sizes = LVR_QA_list[0:3]
+        labels = "Initial QA'd\n12A LVRs", "Initial QA'd\n25A LVRs", "Initial QA'd\n15MS LVRs" 
+        colors = ['blue', 'red', 'yellow']
+        patches, texts = plt.pie(sizes, colors=colors, shadow=True, startangle=90)
+        
+        # Plot
+        plt.figure(figsize=(16,12))
+        plt.title("Ratios of Initial QA\'d LVRs\n(out of a total of " + 
+        str(LVR_QA_list[0] + LVR_QA_list[1] + LVR_QA_list[2]) + "QA'd LVRs")
+        plt.legend(patches, labels, loc="upper right")
+        plt.axis('equal')
+        plt.xlabel("Initial QA'd 12A LVRs: " + str(sizes[0]) + 
+        " | Initial QA'd 25A LVRs: " + str(sizes[1]) +
+        " | Initial QA'd 15MS LVRs: " + str(sizes[2]))
+
+        plt.pie(sizes, labels=labels, colors=colors,
+        autopct='%1.1f%%', shadow=True, startangle=120)
+        plt.tight_layout()
+        plt.savefig('LVR_InitialQAPieChart.png', bbox_inches='tight', pad_inches = 0.2)
+
+
+        """
+        # Bar Plot
+        # plt.style.use('ggplot')
+        colors = ['blue', 'red', 'yellow']
+        labels = ['Assembled DCBs', 'Unassembled DCBs', 'Other DCBs']
+        num_totals = [self.get_num_assembled(), self.get_num_unassembled(), self.get_num_other()]
+        plt.figure(figsize = (14, 10))
+        index = np.arange(len(labels))
+        patches = plt.bar(index, num_totals, color = colors)
+
+        plt.xlabel('DCB Type')
+        plt.ylabel('Number of DCBs')
+        plt.xticks(index, labels)
+        plt.title('DCB By Type')
+        plt.legend(patches, labels, loc="upper right")
+        plt.savefig('DCB_AssemblyBarChart.png')
+        """
 
 class CCM:
 
@@ -259,14 +501,21 @@ class CCM:
         self.CCM_25A[line[0]] = line[2:9]
         self.num_25A += int(line[5]) 
 
-def process_line(new_DCB, line):
-    assembled_idx = new_DCB.get_idx("Assembled")
-    if (line[assembled_idx] == "Yes" or line[assembled_idx] == 'yes'):
-        return 1
-    elif(not line[assembled_idx]):
-        return 2
-    else:
-        return 3
+    def pyplot(self):
+        # Bar Plot
+        colors = ['blue', 'red', 'yellow', 'purple', 'orange', 'pink']
+        labels = ['12A', '12M', '12S', '15M', '15S', '25A']
+        num_totals = [self.num_12A, self.num_12M, self.num_12S, self.num_15M, self.num_15S, self.num_25A]
+        plt.figure(figsize = (14, 10))
+        index = np.arange(len(labels))
+        patches = plt.bar(index, num_totals, color = colors)
+
+        plt.xlabel('CCM Type')
+        plt.ylabel('Number of CCMs')
+        plt.xticks(index, labels)
+        plt.title('Produced CCMs By Type')
+        plt.legend(patches, labels, loc="upper right")
+        plt.savefig('CCM_AssemblyBarChart.png')
 
 #Driver for reading/parsing/writing the DCB portion of the database.
 with open('CSV_DCB.csv', 'r') as csv_file:
@@ -274,11 +523,11 @@ with open('CSV_DCB.csv', 'r') as csv_file:
     new_DCB = DCB()
 
     #Set the indices of the dictionary.
-    new_DCB.set_idx_columns(0)
+    new_DCB.set_DCB_columns(0)
 
     for line in csv_reader:
-        if re.match(pattern_DCB, line[new_DCB.idx_columns["Serial"]]):
-            assembled = process_line(new_DCB, line)
+        if re.match(pattern_DCB, line[new_DCB.DCB_columns["Serial"]]):
+            assembled = new_DCB.process_line(line)
 
             if (assembled == 1):
                 new_DCB.assembled_dict_update(line)
@@ -291,32 +540,46 @@ with open('CSV_DCB.csv', 'r') as csv_file:
             
             new_DCB.increment_total()
 
-    new_DCB.py_plot()
+    new_DCB.pyplot()
 
 #Driver for reading/parsing/writing the LVR portion of the database.
 with open('CSV_LVR.csv', 'r') as csv_file:
     csv_reader = csv.reader(csv_file)
     new_LVR = LVR()
+    new_LVR.set_LVR_columns(6)
 
     #increment_total() is included for symmetry with the DCB loop.
     for line in csv_reader:
 
-        if re.match(pattern_LVR_CZ, line[6]):
-            new_LVR.dict_update_CZ(line)
-            new_LVR.increment_total()
-        
-        elif(re.match(pattern_LVR_EN, line[6])):
-            new_LVR.dict_update_EN(line)
-            new_LVR.increment_total()
-        
-        elif(re.match(pattern_LVR_ER, line[6])):
-            new_LVR.dict_update_ER(line)
+        if (re.match(pattern_LVR_CZ, line[6])
+        or re.match(pattern_LVR_EN, line[6])
+        or re.match(pattern_LVR_ER, line[6])
+        or re.match(pattern_LVR_ES, line[6])):
+            subtype_code = new_LVR.process_line(line)
+
+            if (subtype_code == 1):
+                new_LVR.dict_update_LVR_12A(line)
+
+            elif (subtype_code == 2):
+                new_LVR.dict_update_LVR_25A(line)
+
+            elif (subtype_code == 3):
+                new_LVR.dict_update_LVR_15MS(line)
+            
+            else:
+                new_LVR.dict_update_LVR_other(line)
+
             new_LVR.increment_total()
 
-        elif(re.match(pattern_LVR_ES, line[6])):
-            new_LVR.dict_update_ES(line)
-            new_LVR.increment_total()        
-
+    new_LVR.pyplot()
+    output_stream = open("Demonstration_Output_LVR.txt","w")
+    if (output_stream):
+        output_stream.write(new_LVR.output_stream())
+        output_stream.write("\n")
+        output_stream.write(new_LVR.output_stream_individual_stats())
+    else:
+        print("Output stream failed to open.")      
+        
 #Driver for reading/parsing/writing the CCM portion of the database.
 with open('CSV_CCM.csv', 'r') as csv_file:
     csv_reader = csv.reader(csv_file)
@@ -349,3 +612,5 @@ with open('CSV_CCM.csv', 'r') as csv_file:
             elif(re.match(pattern_CCM_25A, line[0])):
                 new_CCM.dict_update_25A(line)
                 new_CCM.increment_total()
+                
+    new_CCM.pyplot()
