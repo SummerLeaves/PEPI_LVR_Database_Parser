@@ -28,26 +28,20 @@ For each board that needs to be parsed, there is a corresponding class, all of w
 
    Parsing Dictionary
 1) Each defines several parsing dictionaries that split the results into key-value pairs. 
-
-a) The key is some kind of identifier in the parsed CSV lines that indicates it is a valid row to record.
-
-b) The value is an array of strings, with each element of the array corresponding to a category of information that needs to be recorded.
-
-c) The columns dictionary described below defines how the corresponding array indices for each category of information is identified 
+- The key is some kind of identifier in the parsed CSV lines that indicates it is a valid row to record.
+- The value is an array of strings, with each element of the array corresponding to a category of information that needs to be recorded.
+- The columns dictionary described below defines how the corresponding array indices for each category of information is identified 
 for use in data analysis.
    
    Columns Dictionary
 2) Each defines a specialized dictionary that records the different categories of data that need to be recorded for each board,
 and assigns them the corresponding array index of the column of the CSV row that the category is in. 
-
-a) i.e. the "Serial Number" is connected to a value of 0, since the CSV file contains the serial numbers of the DCB boards in the 0th column.
-
-b) The columns dictionary is, at the momemnt, defined using manual adjustments and offsets through a dedicated method.
+- i.e. the "Serial Number" is connected to a value of 0, since the CSV file contains the serial numbers of the DCB boards in the 0th column.
+- The columns dictionary is, at the momemnt, defined using manual adjustments and offsets through a dedicated method.
    
    Parsing Dictionary Update
 3) Each defines a series of dictionary update methods, that update the parsing dictionaries with a Key (An unique unambigious identifier for each board) to a Value (An array of strings that contains the target information of that board, with what information is in what index identified by the specialized dictionary above.)
-
-a) i.e For the DCB file, a filled in Serial Number of type WVJCE-xxx indicates that this is an existing board that needs to be recorded. The value is the row it's on, and the indices that represent relevant information (Location, Assembly Status, PRBS) are recorded as key-value pairs in the columns dictionary.
+- i.e For the DCB file, a filled in Serial Number of type WVJCE-xxx indicates that this is an existing board that needs to be recorded. The value is the row it's on, and the indices that represent relevant information (Location, Assembly Status, PRBS) are recorded as key-value pairs in the columns dictionary.
 
    Data Analysis and Output Files
 4) Each defines an output, to be called after parsing is finished, that utilizes the dictionaries (or associated variables) to
