@@ -59,19 +59,23 @@ For each board that needs to be parsed, there is a corresponding driver, all of 
 To keep the philosophy of robust, easy to understand, and easy to modify code, as much processing as possible is abstracted to the classes.
   
 Regex Identifier
+
 1) Each uses a pre-defined regex identifier to sort out the relvant rows of the parsed CSV. The regex identifier 
 is focused on some aspect of the database that conclusively defines the row that follows to contain targeted information.
 
 Board Object
+
 2) Each creates an object of the board types' class. Processing and finalized data collection will be focused on
 the object.
   
 CSV Reader
+
 3) Each calls CSV reader, creating a csv_reader iterator. From this iterator, we extract an array of strings, which is placed
 into a "line" variable. The line variable is subjected to basic processing that determines whether it contains valid information,
 and if so, is passed to the relevant dictionary update method.
 
 Output
+
 4) Each calls the object's output methods to process and then create file output, to be saved into the local directory.
 
 At the moment, we are doing the DCB, LVR, CCM, and Backplane sections of the database.
