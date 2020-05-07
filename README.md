@@ -24,6 +24,7 @@ removing ambiguity, enabling flexibility,
 and creating isolation for tackling the unique problems presented by parsing the board types' corresponding files.
 
 Classes
+
 For each board that needs to be parsed, there is a corresponding class, all of which are built with the same framework.
 
 Parsing Dictionary
@@ -53,6 +54,7 @@ Data Analysis and Output Files
 do data analysis and generate output. For now, it uses the matplotlib.pyplot module to create graphs, but can also create text files and other arbitrary output.
 
 Drivers
+
 For each board that needs to be parsed, there is a corresponding driver, all of which are built with the same framework.
 To keep the philosophy of robust, easy to understand, and easy to modify code, as much processing as possible is abstracted to the classes.
   
